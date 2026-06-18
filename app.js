@@ -252,10 +252,13 @@ let screenHistory = [];
 
 function showScreen(screenId, pushToHistory = true) {
   const hideNavScreens = ['screen-onboarding', 'screen-order-confirm', 'screen-tracking', 'screen-arrival'];
+  const appContent = document.querySelector('.app-content');
   if (hideNavScreens.includes(screenId)) {
     navBar.classList.add('hidden');
+    if (appContent) appContent.classList.add('no-nav');
   } else {
     navBar.classList.remove('hidden');
+    if (appContent) appContent.classList.remove('no-nav');
   }
 
   if (screenId === 'screen-onboarding' || screenId === 'screen-tracking' || screenId === 'screen-arrival') {

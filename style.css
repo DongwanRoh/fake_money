@@ -120,6 +120,10 @@ body {
   padding-bottom: 90px; /* 네비게이션 바 높이 확보 */
 }
 
+.app-content.no-nav {
+  padding-bottom: 20px; /* 네비게이션 바가 없을 때의 하단 여백 축소 */
+}
+
 /* 스크롤바 숨기기 */
 .app-content::-webkit-scrollbar {
   display: none;
