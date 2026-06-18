@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>식탐 세이버 - 배달 끊기 시뮬레이터</title>
+  <!-- Leaflet CSS CDN 연결 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="mobile-container">
+    <!-- 앱 상단 헤더 -->
+    <header class="app-header" id="app-header">
+      <button class="back-btn" id="btn-back" aria-label="뒤로가기">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor"/>
+        </svg>
+      </button>
+      <h1 class="header-title" id="header-title">식탐 세이버</h1>
+      <div style="width: 24px;"></div> <!-- 좌측 뒤로가기 버튼과 균형을 맞추기 위한 빈 공간 -->
+    </header>
+
+    <!-- 메인 화면 컨텐츠 영역 -->
+    <main class="app-content">
+      
+      <!-- 1. 온보딩 화면 -->
+      <section class="screen active" id="screen-onboarding">
+        <div class="onboarding-slider">
+          <div class="onboarding-slides" id="onboarding-slides">
+            <!-- 슬라이드 1 -->
+            <div class="onboarding-slide">
+              <div class="slide-illustration">
+                <svg viewBox="0 0 100 100" class="svg-illustration">
+                  <circle cx="50" cy="50" r="40" fill="var(--color-primary-light)" />
+                  <path d="M30 65 L45 50 L70 75" stroke="var(--color-primary)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                  <rect x="40" y="30" width="35" height="25" rx="4" fill="var(--color-primary)" opacity="0.8" />
+                  <line x1="45" y1="38" x2="60" y2="38" stroke="white" stroke-width="3" stroke-linecap="round" />
+                  <line x1="45" y1="46" x2="70" y2="46" stroke="white" stroke-width="3" stroke-linecap="round" />
+                  <!-- 금지 표시 -->
+                  <circle cx="50" cy="50" r="30" stroke="var(--color-danger)" stroke-width="6" fill="none" opacity="0.8" />
+                  <line x1="29" y1="29" x2="71" y2="71" stroke="var(--color-danger)" stroke-width="6" opacity="0.8" />
+                </svg>
+              </div>
+              <h2 class="slide-title">배달앱을 지우고 싶은데...<br><span class="highlight">주문하는 손맛</span>이 그립나요?</h2>
+              <p class="slide-desc">지우고 참기만 하는 다이어트와 절약은 이제 그만! 참는 대신 가짜로 주문해 보세요.</p>
+            </div>
+            
+            <!-- 슬라이드 2 -->
+            <div class="onboarding-slide">
+              <div class="slide-illustration">
+                <svg viewBox="0 0 100 100" class="svg-illustration">
+                  <!-- 지갑과 동전 날아가는 형태 -->
+                  <rect x="25" y="40" width="50" height="35" rx="6" fill="var(--color-primary)" />
+                  <path d="M25 48 L75 48" stroke="var(--color-accent)" stroke-width="3" />
+                  <circle cx="50" cy="30" r="10" fill="var(--color-warning)" />
+                  <text x="50" y="34" font-size="12" font-weight="bold" fill="white" text-anchor="middle">₩</text>
+                  <!-- 칼로리 불꽃 -->
+                  <path d="M75 25 C75 18, 70 12, 65 15 C60 18, 62 25, 62 25 C62 25, 57 20, 55 24 C53 28, 58 35, 65 35 C72 35, 75 30, 75 25 Z" fill="var(--color-danger)" />
+                </svg>
+              </div>
+              <h2 class="slide-title">실제 내 주변 지도에서<br><span class="highlight">가상 배달</span>이 출발합니다!</h2>
+              <p class="slide-desc">동네 주소를 입력하면 우리집 근처 실제 골목길을 따라 라이더가 음식을 가지고 달려옵니다.</p>
+            </div>
+          </div>
+
+          <!-- 슬라이드 인디케이터 -->
+          <div class="slide-indicator">
+            <span class="dot active"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+
+        <div class="onboarding-form">
+          <div class="input-group">
+            <label for="input-nickname" class="input-label">사용할 닉네임</label>
+            <input type="text" id="input-nickname" placeholder="식탐사냥꾼 (미입력시 기본값)" maxlength="10">
+          </div>
+          
+          <div class="input-group" id="onboarding-address-group" style="display: none;">
+            <label for="input-address" class="input-label">배달받을 우리집 설정</label>
+            <div class="search-input-wrap">
+              <input type="text" id="input-address" placeholder="예: 역삼역, 망원동 (동/지명)" autocomplete="off">
+              <button class="btn btn-search" id="btn-search-address" type="button">검색</button>
+            </div>
+            <!-- 검색 결과 목록 상자 -->
+            <div class="search-results" id="search-results-box"></div>
+            <div class="selected-address-badge" id="selected-address-badge">
+              <span>설정된 위치: 📍</span> <strong id="selected-address-text">서울시청 (기본값)</strong>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn btn-primary btn-large" id="btn-onboarding-next">다음으로</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. 홈 화면 -->
+      <section class="screen" id="screen-home">
+        <!-- 상단 대시보드 요약 -->
+        <div class="dashboard-header">
+          <div class="welcome-box">
+            <span class="user-badge">Saver</span>
+            <h2>안녕하세요, <span id="home-nickname" class="highlight-text">식탐사냥꾼</span>님!</h2>
+          </div>
+          <div class="streak-box">
+            <svg viewBox="0 0 24 24" width="20" height="20" class="fire-icon">
+              <path d="M12 2C11.5 2 10.9 2.4 10.7 2.9C8.3 7.5 12 11.5 12 11.5C12 11.5 13 10.5 13.5 9.5C14 8.5 13.9 7.4 13.9 7.4C13.9 7.4 15.5 8.7 16 10.5C16.6 12.5 15.5 15.5 12 18.5C8 15.5 7.4 12.5 8 10.5C8.4 9 9.5 8 9.5 8C9.5 8 8 9.5 7.5 11C7 12.5 7.4 14.5 8.5 16C6.5 14 5.5 11.5 6 9.5C6.5 7.5 8 6 8.8 5.4C9 5.2 9 4.8 8.8 4.6C8.6 4.4 8.2 4.4 8 4.6C5.5 6.5 4 9.5 4 12C4 16.4 7.6 20 12 20C16.4 20 20 16.4 20 12C20 7.5 16 3.5 12 2Z" fill="var(--color-primary)"/>
+            </svg>
+            <span class="streak-text">연속 절약 <strong id="home-streak">0</strong>일째</span>
+          </div>
+        </div>
+
+        <!-- 오늘 절약 통계 카드 -->
+        <div class="section-title-wrap">
+          <h3 class="section-sub-title">오늘 참아낸 성과</h3>
+        </div>
+        <div class="stats-grid">
+          <div class="stats-card today-saved">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M6 12h.01M18 12h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="card-data">
+              <span class="label">오늘 절약 금액</span>
+              <span class="value" id="today-money">0원</span>
+            </div>
+          </div>
+          <div class="stats-card today-calories">
+            <div class="card-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" fill="none" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </div>
+            <div class="card-data">
+              <span class="label">오늘 절약 칼로리</span>
+              <span class="value" id="today-calories">0 kcal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 누적 절약 금액 -->
+        <div class="cumulative-card">
+          <div class="cumulative-info">
+            <span class="label">누적 절약 금액</span>
+            <span class="value" id="cumulative-money">0원</span>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-label">
+              <span>목표 절약(10만원) 대비</span>
+              <span id="target-progress-text">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="target-progress-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 큰 액션 버튼 -->
+        <div class="action-btn-wrap">
+          <button class="btn btn-primary btn-large btn-action-pulse" id="btn-go-order">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M12 8v8M8 12h8"/>
+            </svg>
+            가짜 주문하기
+          </button>
+        </div>
+
+        <!-- 최근 주문 리스트 -->
+        <div class="recent-orders-section">
+          <h3 class="section-title">최근 참아낸 배달 의식</h3>
+          <div class="recent-list" id="recent-orders-list">
+            <!-- 동적으로 생성됨 -->
+            <div class="empty-list-placeholder">
+              <svg viewBox="0 0 100 100" class="empty-icon" width="64" height="64">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--color-muted)" stroke-width="2" stroke-dasharray="4 4"/>
+                <text x="50" y="55" font-size="30" text-anchor="middle" opacity="0.6">💭</text>
+              </svg>
+              <p>참아낸 배달 목록이 비어있습니다.<br>첫 가짜 주문을 시작해보세요!</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. 메뉴 선택 화면 -->
+      <section class="screen" id="screen-menu-select">
+        <div class="menu-intro">
+          <h2>오늘 밤, 어떤 음식을 참아내시겠습니까?</h2>
+          <p>먹고 싶었던 치명적인 배달 메뉴를 골라주세요.</p>
+        </div>
+        <div class="menu-grid" id="menu-grid">
+          <!-- JS로 동적 생성될 8가지 시드 메뉴 카드들 -->
+        </div>
+        <p class="disclaimer-text">※ 고지: 가격 및 칼로리 정보는 대략적인 통계 기준 평균치이며 실제 매장의 정보와 다를 수 있습니다.</p>
+      </section>
+
+      <!-- 4. 주문 확인 화면 -->
+      <section class="screen" id="screen-order-confirm">
+        <div class="confirm-card">
+          <div class="selected-menu-header">
+            <span class="menu-emoji-badge" id="confirm-emoji">🍗</span>
+            <h2 id="confirm-menu-name">후라이드 치킨</h2>
+          </div>
+          
+          <div class="confirm-details">
+            <div class="detail-row">
+              <span class="detail-label">결제 예정 금액</span>
+              <span class="detail-val highlight-text" id="confirm-price">20,000원</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">섭취 예상 칼로리</span>
+              <span class="detail-val highlight-text" id="confirm-calories">700 kcal</span>
+            </div>
+          </div>
+
+          <div class="saving-benefit-card">
+            <h3>이번 가짜 주문을 완료하면?</h3>
+            <ul>
+              <li>
+                <span class="icon">💰</span>
+                <span>실제 통장에서 <strong><span id="benefit-money">20,000</span>원</strong>이 나가는 것을 방지합니다.</span>
+              </li>
+              <li>
+                <span class="icon">🥗</span>
+                <span>야식으로 인한 <strong><span id="benefit-calories">700</span> kcal</strong> 섭취를 차단합니다.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="confirm-warning">
+          <p>⚠️ 실제 결제나 배달은 이루어지지 않는 <strong>가짜 주문</strong>입니다. 내 동네 골목 지도를 통해 실시간으로 배달 시뮬레이션이 진행됩니다.</p>
+        </div>
+
+        <div class="btn-group-stacked">
+          <button class="btn btn-primary btn-large" id="btn-place-order">진짜처럼 주문하기</button>
+          <button class="btn btn-secondary btn-large" id="btn-cancel-order">주문 취소하고 돌아가기</button>
+        </div>
+      </section>
+
+      <!-- 5. 트래킹 화면 (실시간 실제 지도 연동 가짜 배달 진행) -->
+      <section class="screen" id="screen-tracking">
+        <!-- 단계 표시 바 -->
+        <div class="tracking-steps">
+          <div class="step-line">
+            <div class="step-progress-line" id="tracking-progress-line" style="width: 0%;"></div>
+          </div>
+          <div class="step-nodes">
+            <div class="step-node active" data-step="0">
+              <span class="node-dot"></span>
+              <span class="node-label">접수</span>
+            </div>
+            <div class="step-node" data-step="1">
+              <span class="node-dot"></span>
+              <span class="node-label">준비중</span>
+            </div>
+            <div class="step-node" data-step="2">
+              <span class="node-dot"></span>
+              <span class="node-label">출발</span>
+            </div>
+            <div class="step-node" data-step="3">
+              <span class="node-dot"></span>
+              <span class="node-label">근접</span>
+            </div>
+            <div class="step-node" data-step="4">
+              <span class="node-dot"></span>
+              <span class="node-label">도착</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 카운트다운 타이머 -->
+        <div class="timer-display">
+          <span class="timer-label">가상 배달 완료까지</span>
+          <h2 class="timer-countdown" id="tracking-timer">02:00</h2>
+        </div>
+
+        <!-- 실제 지도 연동용 맵 컨테이너 (기존 가짜 SVG 지도 교체) -->
+        <div class="map-container">
+          <div id="delivery-map" style="height: 250px; width: 100%;"></div>
+        </div>
+
+        <!-- 단계별 실시간 알림 멘트 박스 -->
+        <div class="delivery-status-message">
+          <p id="tracking-status-msg">주문이 안전하게 접수되었습니다...</p>
+        </div>
+
+        <!-- 테스트 편의용 가짜 치트 버튼 (동작 압축) -->
+        <div class="cheat-btn-wrap">
+          <button class="btn-cheat" id="btn-cheat-speedup">⚡ 초고속 배달 (치트)</button>
+        </div>
+      </section>
+
+      <!-- 6. 도착 완료 화면 -->
+      <section class="screen" id="screen-arrival">
+        <canvas id="confetti-canvas"></canvas>
+        <div class="arrival-card">
+          <div class="arrival-stamp">
+            <svg viewBox="0 0 100 100" width="80" height="80">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="var(--color-success)" stroke-width="4" stroke-dasharray="4 2"/>
+              <circle cx="50" cy="50" r="40" fill="var(--color-success)" opacity="0.1"/>
+              <path d="M35 50 L45 60 L65 40" stroke="var(--color-success)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          
+          <h2 class="arrival-title">배달 완료! 🎉</h2>
+          <p class="arrival-sub">식욕의 큰 파도를 안전하게 넘기셨습니다.</p>
+
+          <div class="arrival-receipt">
+            <div class="receipt-header">
+              <span>절약 영수증</span>
+              <span id="arrival-date">2026.06.18</span>
+            </div>
+            <div class="receipt-body">
+              <div class="receipt-line">
+                <span class="menu-name"><span id="arrival-menu-emoji">🍗</span> <span id="arrival-menu-name">후라이드 치킨</span></span>
+                <span class="menu-qty">1개</span>
+              </div>
+              <div class="divider"></div>
+              <div class="receipt-line total">
+                <span>지켜낸 내 지갑</span>
+                <span class="value" id="arrival-saved-money">20,000원</span>
+              </div>
+              <div class="receipt-line total calorie">
+                <span>안 먹은 칼로리</span>
+                <span class="value" id="arrival-saved-calories">700 kcal</span>
+              </div>
+            </div>
+          </div>
+          
+          <p class="arrival-cheer">오늘 아낀 이 값진 노력은 고스란히 회원님의 내일로 쌓이게 됩니다. 정말 멋진 인내력이었어요!</p>
+        </div>
+
+        <div class="btn-group">
+          <button class="btn btn-primary btn-large" id="btn-arrival-home">홈으로 돌아가기</button>
+        </div>
+      </section>
+
+      <!-- 7. 마이페이지 / 통계 화면 -->
+      <section class="screen" id="screen-mypage">
+        <div class="mypage-profile">
+          <div class="profile-avatar">
+            <span>🛡️</span>
+          </div>
+          <div class="profile-info">
+            <h2 id="mypage-nickname">식탐사냥꾼</h2>
+            <p class="profile-subtitle">건강과 지갑을 수호하는 자</p>
+          </div>
+        </div>
+
+        <!-- 누적 전체 통계 섹션 -->
+        <h3 class="section-title">누적 수호 통계</h3>
+        <div class="cumulative-stats-cards">
+          <div class="stats-mini-card">
+            <span class="label">총 참아낸 횟수</span>
+            <strong id="stat-total-orders">0회</strong>
+          </div>
+          <div class="stats-mini-card">
+            <span class="label">누적 아낀 돈</span>
+            <strong id="stat-total-saved">0원</strong>
+          </div>
+          <div class="stats-mini-card">
+            <span class="label">누적 아낀 칼로리</span>
+            <strong id="stat-total-calories">0 kcal</strong>
+          </div>
+          <div class="stats-mini-card">
+            <span class="label">최대 연속 절약</span>
+            <strong id="stat-streak">0일</strong>
+          </div>
+        </div>
+
+        <!-- 우리집 위치 변경 섹션 -->
+        <h3 class="section-title">우리집 위치 설정</h3>
+        <div class="mypage-address-card">
+          <div class="mypage-address-info">
+            <span>현재 설정 위치:</span>
+            <strong id="mypage-current-address">서울시청 (기본값)</strong>
+          </div>
+          <div class="search-input-wrap">
+            <input type="text" id="mypage-input-address" placeholder="예: 부산역, 마포구 (동/지명)" autocomplete="off">
+            <button class="btn btn-search" id="mypage-btn-search-address" type="button">검색</button>
+          </div>
+          <div class="search-results" id="mypage-search-results-box"></div>
+        </div>
+
+        <!-- 획득 배지 섹션 -->
+        <h3 class="section-title">수호자의 훈장 (배지)</h3>
+        <div class="badge-grid" id="badges-container">
+          <!-- JS로 동적 생성됨 -->
+        </div>
+
+        <!-- 초기화 버튼 -->
+        <div class="reset-btn-wrap">
+          <button class="btn-reset" id="btn-reset-data">
+            데이터 초기화하기
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 하단 탭 네비게이션 바 -->
+    <nav class="app-nav" id="app-nav">
+      <button class="nav-item active" data-target="screen-home" id="nav-btn-home">
+        <svg viewBox="0 0 24 24" width="22" height="22" class="nav-icon">
+          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/>
+        </svg>
+        <span>홈</span>
+      </button>
+      <button class="nav-item" data-target="screen-menu-select" id="nav-btn-order">
+        <svg viewBox="0 0 24 24" width="22" height="22" class="nav-icon">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z" fill="currentColor"/>
+        </svg>
+        <span>가짜주문</span>
+      </button>
+      <button class="nav-item" data-target="screen-mypage" id="nav-btn-mypage">
+        <svg viewBox="0 0 24 24" width="22" height="22" class="nav-icon">
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
+        </svg>
+        <span>마이페이지</span>
+      </button>
+    </nav>
+
+    <!-- 배지 획득 안내 토스트 메세지 -->
+    <div class="badge-toast" id="badge-toast">
+      <div class="toast-content">
+        <span class="toast-icon">🏆</span>
+        <div class="toast-text-wrap">
+          <span class="toast-title">새로운 훈장 획득!</span>
+          <span class="toast-desc" id="badge-toast-desc">첫 가짜 주문 성공</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS CDN 연결 (app.js 이전에 로딩 필수) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
