@@ -214,7 +214,7 @@ body {
 /* 1. 온보딩 스타일 */
 #screen-onboarding {
   justify-content: space-between;
-  min-height: calc(100vh - 160px);
+  min-height: 100%;
 }
 
 .onboarding-slider {
